@@ -333,7 +333,6 @@
         function createShortPrompt(userMessage) {
             const lowerMsg = userMessage.toLowerCase();
             
-            // Template ngắn gọn cho từng loại câu hỏi
             if (lowerMsg.includes('bác sĩ') || lowerMsg.includes('y khoa')) {
                 return `Trả lời NGẮN GỌN trong 2-3 câu: Ngành Y khoa tuyển sinh khối B00 (Toán-Hóa-Sinh). Một số trường xét thêm A00 (Toán-Lý-Hóa). Điểm chuẩn 2025-2026 dự kiến 26-28 điểm.`;
             }
@@ -354,7 +353,6 @@
                 return `Trả lời NGẮN GỌN về lộ trình: Lớp 10: nắm chắc kiến thức cơ bản. Lớp 11: học chuyên sâu môn xét tuyển. Lớp 12: luyện đề, ôn thi tốt nghiệp.`;
             }
             
-            // Mặc định - yêu cầu trả lời ngắn
             return `Trả lời câu hỏi sau một cách NGẮN GỌN, chỉ 2-3 câu, đi thẳng vào vấn đề, không lan man: "${userMessage}"`;
         }
 
@@ -366,7 +364,6 @@
 
             if (chats.length === 0) {
                 createNewChat();
-                // Hiển thị tin nhắn chào mừng
                 setTimeout(() => {
                     addMessageToUI("assistant", getWelcomeMessage());
                 }, 500);
@@ -383,10 +380,10 @@
 
 Hỏi nhanh - Đáp gọn:
 
-• **Ngành Y/Bác sĩ** thi khối nào?
-• **Điểm chuẩn CNTT** bao nhiêu?
-• **Lộ trình học** cho lớp 12?
-• **Học bổng** điều kiện gì?
+- **Ngành Y/Bác sĩ** thi khối nào?
+- **Điểm chuẩn CNTT** bao nhiêu?
+- **Lộ trình học** cho lớp 12?
+- **Học bổng** điều kiện gì?
 
 Nhập câu hỏi của bạn 👇`;
         }
@@ -418,7 +415,7 @@ Nhập câu hỏi của bạn 👇`;
                 typingIndicator.classList.add('hidden');
                 isSending = false;
             });
-                }
+        }
   
         // Tự động điều chỉnh kích thước textarea
         function setupTextareaAutoResize() {
@@ -469,7 +466,7 @@ Nhập câu hỏi của bạn 👇`;
             autoResizeTextarea();
             
             // Hiển thị indicators
-            typingIndicator.classList.remove("hidden");
+            typingIndicator.classList.remove("hidden"); // SỬA LẠI THÀNH remove ĐỂ HIỂN THỊ
             stopButtonContainer.classList.remove("hidden");
             continueButtonContainer.classList.add("hidden");
 
@@ -484,36 +481,42 @@ Nhập câu hỏi của bạn 👇`;
                 
                 // SỬ DỤNG PROMPT NGẮN GỌN
                 const shortPrompt = createShortPrompt(userMessage);
+
+                // Lấy lịch sử chat (trừ đi tin nhắn mới nhất vừa được push vào mảng)
+                // Để tránh trùng lặp khi API nhận dữ liệu
+                const historyToSend = currentChat.messages.slice(0, -1).map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
                 
-                // Tạo chat session mới
-         typingIndicator.classList.add("hidden");
+                const response = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    // Thêm type: 'tuvan' để định tuyến API Key
+                    body: JSON.stringify({
+                        message: shortPrompt,
+                        history: historyToSend,
+                        type: 'tuvan'
+                    }),
+                    signal: abortController.signal
+                });
 
-const response = await fetch("/api/chat", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    message: userMessage
-  }),
-  signal: abortController.signal
-});
+                if (!response.ok) {
+                    throw new Error("API lỗi: " + response.status);
+                }
 
-if (!response.ok) {
-  throw new Error("API lỗi: " + response.status);
-}
+                const data = await response.json();
 
-const data = await response.json();
+                const fullResponse =
+                    data.reply ||
+                    data.text ||
+                    data.response ||
+                    "Không có phản hồi";
 
-const fullResponse =
-  data.reply ||
-  data.text ||
-  data.response ||
-  "Không có phản hồi";
-
-contentDiv.innerHTML = formatMessage(fullResponse);
-scrollToBottom();
-
+                contentDiv.innerHTML = formatMessage(fullResponse);
+                scrollToBottom();
 
                 if (!isStopped && fullResponse) {
                     // Lưu tin nhắn bot
@@ -530,7 +533,10 @@ scrollToBottom();
                 
             } catch (error) {
                 console.error("Lỗi:", error);
-                addMessageToUI("assistant", "❌ Lỗi: " + error.message);
+                // Nếu bị huỷ request bằng nút Dừng, không hiện lỗi
+                if (error.name !== 'AbortError') {
+                    addMessageToUI("assistant", "❌ Lỗi: " + error.message);
+                }
                 
             } finally {
                 isSending = false;
