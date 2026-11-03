@@ -253,10 +253,8 @@
 
     <script>
         // ---------------------------------------------------------
-        // 1. CẤU HÌNH API VÀ SYSTEM PROMPT
+        // 1. CẤU HÌNH SYSTEM PROMPT
         // ---------------------------------------------------------
-        const GEMINI_API_KEY = "NHẬP_API_KEY_CỦA_BẠN_VÀO_ĐÂY"; // Thay bằng API Key thực tế của bạn
-        
         // System Prompt tối ưu để AI đóng vai trò chuyên gia, ngầm tích hợp phân tích JSON
         const systemInstruction = `Bạn là một chuyên gia tư vấn hướng nghiệp dựa trên lý thuyết Holland (RIASEC).
 Nhiệm vụ của bạn là trò chuyện, đặt câu hỏi tình huống mở để khám phá tính cách người dùng.
@@ -314,7 +312,7 @@ Hãy giữ phần text trò chuyện thân thiện, tự nhiên. Đừng nhắc 
         });
 
         // ---------------------------------------------------------
-        // 3. XỬ LÝ GIAO DIỆN CHAT VÀ GỌI API
+        // 3. XỬ LÝ GIAO DIỆN CHAT VÀ GỌI API (ĐÃ SỬA ĐỂ DÙNG BACKEND)
         // ---------------------------------------------------------
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
@@ -342,7 +340,7 @@ Hãy giữ phần text trò chuyện thân thiện, tự nhiên. Đừng nhắc 
                 processBotResponse(responseText);
             } catch (error) {
                 console.error(error);
-                appendMessage('bot-msg', 'Xin lỗi, đã có lỗi kết nối hoặc bạn chưa nhập API Key hợp lệ.');
+                appendMessage('bot-msg', 'Xin lỗi, đã có lỗi kết nối với máy chủ.');
             }
 
             document.getElementById('loading').style.display = 'none';
@@ -358,23 +356,29 @@ Hãy giữ phần text trò chuyện thân thiện, tự nhiên. Đừng nhắc 
         }
 
         async function callGeminiAPI() {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-            
-            const payload = {
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-                contents: chatHistory
-            };
+            // Đóng gói lịch sử chat thành một chuỗi Prompt duy nhất để Backend đọc được
+            let conversationContext = systemInstruction + "\n\n--- DIỄN BIẾN TRÒ CHUYỆN ĐẾN HIỆN TẠI ---\n";
+            for (let msg of chatHistory) {
+                let sender = msg.role === 'user' ? "Người dùng" : "Chuyên gia AI";
+                conversationContext += `${sender}: ${msg.parts[0].text}\n`;
+            }
+            conversationContext += "Chuyên gia AI (hãy phản hồi tiếp):";
 
-            const response = await fetch(url, {
+            // Gọi API nội bộ của bạn, truyền type: 'holland' để backend tự phân luồng Key
+            const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ 
+                    message: conversationContext, 
+                    type: 'holland' 
+                })
             });
 
             if (!response.ok) throw new Error("API Error");
 
             const data = await response.json();
-            const botReply = data.candidates[0].content.parts[0].text;
+            // Lấy reply (đây là biến trả về chuẩn của file backend api/chat.js bạn đang dùng)
+            const botReply = data.reply || data.text || "Lỗi xử lý phản hồi.";
             
             // Lưu lại phản hồi của bot vào lịch sử
             chatHistory.push({ role: "model", parts: [{ text: botReply }] });
