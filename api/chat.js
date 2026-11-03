@@ -19,13 +19,16 @@ export default async function handler(req, res) {
       apiKey = process.env.GEMINI_KEY_TAODE;
     } else if (type === 'tuvan') {
       apiKey = process.env.GEMINI_KEY_TUVAN;
+    } else if (type === 'holland') {
+      // Bổ sung luồng API Key riêng cho tính năng AI Holland
+      apiKey = process.env.GEMINI_KEY_HOLLAND;
     }
 
     if (!apiKey) {
       return res.status(500).json({ error: `Chưa cấu hình API Key cho tính năng ${type || 'mặc định'} trên Vercel` });
     }
 
-    // 2. Gửi request sang Google (Giữ nguyên logic của bạn)
+    // 2. Gửi request sang Google
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
       {
