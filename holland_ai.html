@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Holland Code - Tư Vấn Học Tập Thông Minh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Thư viện Chart.js để vẽ biểu đồ mạng nhện -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6DD5ED, #2193B0);
+            --secondary-gradient: linear-gradient(135deg, #FFC107, #FF8F00);
+            --text-dark: #2c3e50;
+            --text-light: #ecf0f1;
+            --bg-light: #f4f7f6;
+            --card-bg: #ffffff;
+            --shadow-subtle: rgba(0, 0, 0, 0.08);
+            --shadow-strong: rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar nhỏ gọn */
+        .navbar {
+            background: var(--primary-gradient);
+            padding: 15px 30px;
+            color: white;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 10px var(--shadow-subtle);
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .navbar a i {
+            margin-right: 8px;
+        }
+
+        /* Bố cục chính */
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Phần khung Chat */
+        .chat-section {
+            flex: 1.2;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 5px 20px var(--shadow-subtle);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 1.2em;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 15px;
+            line-height: 1.5;
+            font-size: 0.95em;
+        }
+
+        .bot-msg {
+            background: #f1f5f9;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .user-msg {
+            background: var(--primary-gradient);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-input-area {
+            padding: 15px 20px;
+            background: #fff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 25px;
+            outline: none;
+            font-family: 'Open Sans', sans-serif;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input-area input:focus {
+            border-color: #2193B0;
+        }
+
+        .chat-input-area button {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-input-area button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Phần Dashboard (Biểu đồ + Kết quả) */
+        .dashboard-section {
+            flex: 1;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 5px 20px var(--shadow-subtle);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+        }
+
+        .dashboard-section h2 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            color: var(--text-dark);
+            text-align: center;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            margin-bottom: 20px;
+        }
+
+        .result-box {
+            background: #f8fafc;
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 0.95em;
+        }
+
+        .loading-indicator {
+            display: none;
+            font-size: 0.9em;
+            color: #64748b;
+            margin-left: 10px;
+            font-style: italic;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .app-container {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            .chat-section {
+                min-height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <a href="index.html"><i class="fas fa-arrow-left"></i> Về Trang Chủ</a>
+    </div>
+
+    <div class="app-container">
+        <!-- Khu vực Chat -->
+        <div class="chat-section">
+            <div class="chat-header">
+                <i class="fas fa-brain" style="color: #2193B0; margin-right: 8px;"></i> Chuyên gia Hướng nghiệp AI
+                <span class="loading-indicator" id="loading">đang phân tích...</span>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="message bot-msg">
+                    Chào bạn! Mình là AI hỗ trợ hướng nghiệp. Để tìm ra định hướng chuẩn xác nhất (ví dụ: khối ngành kỹ thuật công nghệ, tự nhiên, hay xã hội), chúng ta sẽ cùng trò chuyện nhé. <br><br>
+                    Câu hỏi đầu tiên: Trong thời gian rảnh rỗi, bạn thích mày mò tìm hiểu phần cứng, lập trình, hay thích tham gia các hoạt động ngoại khóa cùng bạn bè hơn?
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="user-input" placeholder="Nhập câu trả lời của bạn..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <!-- Khu vực Biểu đồ & Kết quả -->
+        <div class="dashboard-section">
+            <h2>Hồ Sơ Tính Cách (RIASEC)</h2>
+            <div class="chart-container">
+                <canvas id="riasecChart"></canvas>
+            </div>
+            <div class="result-box" id="result-text">
+                <strong>Đang thu thập dữ liệu...</strong><br>
+                Biểu đồ sẽ tự động cập nhật và phân tích ngành học phù hợp khi AI nắm bắt được xu hướng tính cách của bạn (khoảng 3-4 câu trả lời).
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------
+        // 1. CẤU HÌNH API VÀ SYSTEM PROMPT
+        // ---------------------------------------------------------
+        const GEMINI_API_KEY = "NHẬP_API_KEY_CỦA_BẠN_VÀO_ĐÂY"; // Thay bằng API Key thực tế của bạn
+        
+        // System Prompt tối ưu để AI đóng vai trò chuyên gia, ngầm tích hợp phân tích JSON
+        const systemInstruction = `Bạn là một chuyên gia tư vấn hướng nghiệp dựa trên lý thuyết Holland (RIASEC).
+Nhiệm vụ của bạn là trò chuyện, đặt câu hỏi tình huống mở để khám phá tính cách người dùng.
+Trong quá trình trò chuyện, nếu người dùng bộc lộ rõ xu hướng (đặc biệt là nhóm Kỹ thuật - R hoặc Nghiên cứu - I), hãy đưa ra các ví dụ cụ thể về môi trường đại học như Đại học Bách khoa, Học viện Kỹ thuật Quân sự hoặc các định hướng như du học nước ngoài (ví dụ: du học Nga nhóm ngành khoa học, kỹ thuật) để truyền cảm hứng.
+
+QUAN TRỌNG: Ở CUỐI MỖI CÂU TRẢ LỜI CỦA BẠN, TỪ LƯỢT THỨ 3 TRỞ ĐI (khi đã có đủ dữ liệu), hãy luôn chèn MỘT ĐOẠN JSON ẨN nằm trong cặp thẻ <riasec>...</riasec> để hệ thống cập nhật biểu đồ.
+Định dạng bắt buộc:
+<riasec>
+{
+  "R": 80, "I": 70, "A": 20, "S": 50, "E": 40, "C": 60,
+  "top3": "RIC",
+  "recommendation": "Phân tích ngắn gọn (khoảng 2-3 câu) gợi ý trường/ngành phù hợp với 3 chỉ số cao nhất..."
+}
+</riasec>
+Hãy giữ phần text trò chuyện thân thiện, tự nhiên. Đừng nhắc đến việc bạn đang xuất mã JSON cho người dùng biết.`;
+
+        let chatHistory = [];
+
+        // ---------------------------------------------------------
+        // 2. KHỞI TẠO BIỂU ĐỒ RADAR CHART (CHART.JS)
+        // ---------------------------------------------------------
+        const ctx = document.getElementById('riasecChart').getContext('2d');
+        let radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Kỹ thuật (R)', 'Nghiên cứu (I)', 'Nghệ thuật (A)', 'Xã hội (S)', 'Quản lý (E)', 'Nghiệp vụ (C)'],
+                datasets: [{
+                    label: 'Chỉ số tính cách',
+                    data: [10, 10, 10, 10, 10, 10], // Giá trị khởi tạo mặc định
+                    backgroundColor: 'rgba(33, 147, 176, 0.2)',
+                    borderColor: '#2193B0',
+                    pointBackgroundColor: '#FFC107',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#FFC107',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                        pointLabels: {
+                            font: { family: 'Open Sans', size: 11, weight: 'bold' },
+                            color: '#2c3e50'
+                        },
+                        ticks: { display: false, min: 0, max: 100 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // ---------------------------------------------------------
+        // 3. XỬ LÝ GIAO DIỆN CHAT VÀ GỌI API
+        // ---------------------------------------------------------
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const inputField = document.getElementById('user-input');
+            const userText = inputField.value.trim();
+            if (!userText) return;
+
+            // Hiển thị tin nhắn user
+            appendMessage('user-msg', userText);
+            inputField.value = '';
+            
+            // Lưu vào lịch sử
+            chatHistory.push({ role: "user", parts: [{ text: userText }] });
+
+            // Hiện loading
+            document.getElementById('loading').style.display = 'inline';
+
+            try {
+                const responseText = await callGeminiAPI();
+                processBotResponse(responseText);
+            } catch (error) {
+                console.error(error);
+                appendMessage('bot-msg', 'Xin lỗi, đã có lỗi kết nối hoặc bạn chưa nhập API Key hợp lệ.');
+            }
+
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function appendMessage(className, text) {
+            const chatBox = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message ' + className;
+            msgDiv.innerHTML = text; // Hỗ trợ HTML như <br> hoặc <strong> từ AI
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function callGeminiAPI() {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+            
+            const payload = {
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                contents: chatHistory
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("API Error");
+
+            const data = await response.json();
+            const botReply = data.candidates[0].content.parts[0].text;
+            
+            // Lưu lại phản hồi của bot vào lịch sử
+            chatHistory.push({ role: "model", parts: [{ text: botReply }] });
+            return botReply;
+        }
+
+        function processBotResponse(fullText) {
+            // Tách phần trò chuyện thông thường và phần JSON phân tích (nằm trong <riasec>...</riasec>)
+            const regex = /<riasec>([\s\S]*?)<\/riasec>/;
+            const match = fullText.match(regex);
+            
+            let chatText = fullText;
+            
+            if (match && match[1]) {
+                try {
+                    const riasecData = JSON.parse(match[1].trim());
+                    // Cập nhật biểu đồ
+                    updateChart(riasecData);
+                    // Lọc bỏ phần thẻ <riasec> để không in ra màn hình chat
+                    chatText = fullText.replace(regex, '').trim();
+                } catch (e) {
+                    console.log("JSON parse error: ", e);
+                }
+            }
+            
+            // In tin nhắn của bot (đã bỏ phần dữ liệu ẩn)
+            // Replace \n bằng <br> để xuống dòng hiển thị đẹp hơn
+            appendMessage('bot-msg', chatText.replace(/\n/g, '<br>'));
+        }
+
+        function updateChart(data) {
+            // Cập nhật số liệu trên Radar Chart
+            radarChart.data.datasets[0].data = [data.R, data.I, data.A, data.S, data.E, data.C];
+            radarChart.update();
+
+            // Cập nhật hộp thoại kết quả
+            const resultBox = document.getElementById('result-text');
+            resultBox.innerHTML = `
+                <div style="font-size: 1.2em; color: #2193B0; margin-bottom: 10px; text-align: center;">
+                    <strong>Mã nổi trội: ${data.top3}</strong>
+                </div>
+                <div>${data.recommendation}</div>
+            `;
+        }
+    </script>
+</body>
+</html>
